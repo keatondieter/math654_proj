@@ -17,15 +17,11 @@ numBuses = length(mpc.bus(:,1));
 
 sysMu = mean(mpc.bus(:,4));
 N = 1000;
-means = zeros(numBuses, 1)
-std = zeros(numBuses, 1)
+means = zeros(numBuses, 1);
+stds = zeros(numBuses, 1);
 
 for i = 1:2
-
-
     baseLoad = pfBase.bus(i, 4);
-
-
 
     % Test monte-carlo
     X = normrnd(mu, sigma, N, 1);
@@ -40,7 +36,7 @@ for i = 1:2
 
         % Set the new load value
         load = baseLoad + sysMu * x;
-        mpc.bus(busNo, 4) = load;
+        mpc.bus(i, 4) = load;
 
         % Run the power flow
         pfRes = runpf(mpc, mpopt);
@@ -51,8 +47,9 @@ for i = 1:2
         i = i + 1;
     end
     
-    means(i) = means(genRes)
+    means(i) = means(genRes, 2);
+    stds(i) = std(genRes); 
 end
 
-
+output = ma
 
