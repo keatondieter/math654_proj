@@ -2,6 +2,8 @@ clear
 close all
 clc
 
+init_matpower_proj
+
 % Normally distributed random varaiable zero mean, unit variance
 mu = 0;
 sigma = 1;
