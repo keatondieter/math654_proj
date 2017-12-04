@@ -14,11 +14,12 @@ mpopt = mpoption('verbose', 0, 'out.all', 0, 'pf.enforce_q_lims', 1);
 pfBase = runpf(mpc, mpopt);
     
 numBuses = length(mpc.bus(:,1));
+numGen = length(mpc.gen(:,1));
 
 sysMu = mean(mpc.bus(:,4));
 N = 1000;
-means = zeros(numBuses, 1);
-stds = zeros(numBuses, 1);
+means = zeros(numBuses, numGen);
+stds = zeros(numBuses, numGen);
 
 for i = 1:2
     baseLoad = pfBase.bus(i, 4);
@@ -29,26 +30,26 @@ for i = 1:2
     genRes = zeros(length(mpc.gen(:,1)), N);
     pfSuccess = zeros(N,1);
     loadVal = zeros(N, 1);
-    i = 1;
+    j = 1;
     for x = X'
         % Reset to the base case
         mpc = pfBase;
 
         % Set the new load value
-        load = baseLoad + sysMu * x;
-        mpc.bus(i, 4) = load;
+        curLoad = baseLoad + sysMu * x;
+        mpc.bus(i, 4) = curLoad;
 
         % Run the power flow
         pfRes = runpf(mpc, mpopt);
 
-        loadVal(i) = load;
-        pfSuccess(i) = pfRes.success;
-        genRes(:,i) = pfRes.gen(:,3);
-        i = i + 1;
+        loadVal(j) = curLoad;
+        pfSuccess(j) = pfRes.success;
+        genRes(:,j) = pfRes.gen(:,3);
+        j = j + 1;
     end
     
-    means(i) = means(genRes, 2);
-    stds(i) = std(genRes); 
+    means(i,:) = mean(genRes, 2);
+    stds(i,:) = std(genRes, 0, 2)'; 
 end
 
 save('monteCarlo.mat', 'means', 'stds');
