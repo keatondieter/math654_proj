@@ -9,40 +9,49 @@ busNo = unidrnd(300);
 filecontents = load('case300_psse.mat');
 mpc = filecontents.mpc;
 
-histogram(loadVal)
+mpopt = mpoption('verbose', 0, 'out.all', 0, 'pf.enforce_q_lims', 1);
+pfBase = runpf(mpc, mpopt);
 
-maxLevel = 2;
+sysMu = mean(mpc.bus(:,4));
+
+numBuses = length(mpc.bus(:,1));
+numGen = length(mpc.gen(:,1));
+
+maxLevel = 3;
 dimension = 1;
 
 numPoints = sparse_grid_herm_size(dimension, maxLevel);
 [weights, nodes] = sparse_grid_herm(dimension, maxLevel, numPoints);
-weights = weights / sum(weights)
+weights = weights / sum(weights);
 
-genResCol = zeros(length(mpc.gen(:,1)), 1);
-colSuccess = zeros(numPoints, 1);
-for i = 1:numPoints
-    mpc = pfBase;
+for i = 1:300'
     
-    load = baseLoad + sysMu * nodes(i);
-    mpc.bus(busNo, 4) = load;
+
+    genResCol = zeros(length(mpc.gen(:,1)), 1);
+    genRes2 = zeros(length(mpc.gen(:,1)), 1);
+    colSuccess = zeros(numPoints, 1);
     
-    pfRes = runpf(mpc, mpopt);
+    baseLoad = pfBase.bus(i,4);
     
-    loadVal(i) = load;
-    colSuccess(i) = pfRes.success;
-    genResCol = genResCol + pfRes.gen(:,3) * weights(i);
+    for j = 1:numPoints
+        mpc = pfBase;
+
+        curLoad = baseLoad + sysMu * nodes(j);
+        mpc.bus(i, 4) = curLoad;
+
+        pfRes = runpf(mpc, mpopt);
+
+        loadVal(j) = curLoad;
+        colSuccess(j) = pfRes.success;
+        genResCol = genResCol + pfRes.gen(:,3) * weights(j);
+
+        genRes2 = genRes2 + pfRes.gen(:,3).^2 * weights(j);
+    end
+
+    means(i,:) = genResCol;
+    stds(i,:) = sqrt(genRes2 - genResCol.^2);
+
 end
 
-figure()
-subplot(1,2,1)
-bar(mean(genRes, 2))
-title('Monte-Carlo')
+save(sprintf('sc_%d', maxLevel), 'means', 'stds');
 
-subplot(1,2,2)
-bar(genResCol)
-title('Collocation')
-
-shg
-
-figure()
-histogram(mean(genRes, 2) - genResCol)
