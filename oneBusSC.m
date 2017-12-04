@@ -2,8 +2,7 @@ clear
 close all
 clc
 
-% Test looking at bus random bus
-busNo = unidrnd(300);
+init_matpower_proj
 
 % Load in the power system case
 filecontents = load('case300_psse.mat');
