@@ -23,7 +23,7 @@ N = 1000;
 means = zeros(numBuses, numGen);
 stds = zeros(numBuses, numGen);
 
-for i = 1:2
+for i = 1:300
     baseLoad = pfBase.bus(i, 4);
 
     % Test monte-carlo
@@ -32,8 +32,8 @@ for i = 1:2
     genRes = zeros(length(mpc.gen(:,1)), N);
     pfSuccess = zeros(N,1);
     loadVal = zeros(N, 1);
-    j = 1;
-    for x = X'
+    parfor j = 1:length(X)
+        x = X(j);
         % Reset to the base case
         mpc = pfBase;
 
@@ -42,16 +42,22 @@ for i = 1:2
         mpc.bus(i, 4) = curLoad;
 
         % Run the power flow
-        pfRes = runpf(mpc, mpopt);
-
-        loadVal(j) = curLoad;
-        pfSuccess(j) = pfRes.success;
-        genRes(:,j) = pfRes.gen(:,3);
-        j = j + 1;
+        try
+            pfRes = runpf(mpc, mpopt);
+            loadVal(j) = curLoad;
+            pfSuccess(j) = pfRes.success;
+            genRes(:,j) = pfRes.gen(:,4);
+        catch
+            loadVal(j) = curLoad;
+            pfSuccess(j) = 0;
+            genRes(:,j) = pfBase.gen(:,4);
+        end
+        
     end
-    
-    means(i,:) = mean(genRes, 2);
-    stds(i,:) = std(genRes, 0, 2)'; 
+    good = find(pfSuccess);
+    means(i,:) = mean(genRes(:,good), 2);
+    stds(i,:) = std(genRes(:,good), 0, 2)'; 
+    disp(i)
 end
 
 save('monteCarlo.mat', 'means', 'stds');
