@@ -10,7 +10,8 @@ sigma = 1;
 
 % Load in the power system case
 filecontents = load('case300_psse.mat');
-mpc = filecontents.mpc;
+mpcBase = filecontents.mpc;
+mpc = mpcBase;
 
 mpopt = mpoption('verbose', 0, 'out.all', 0, 'pf.enforce_q_lims', 1);
 pfBase = runpf(mpc, mpopt);
@@ -18,7 +19,24 @@ pfBase = runpf(mpc, mpopt);
 numBuses = length(mpc.bus(:,1));
 numGen = length(mpc.gen(:,1));
 
-sysMu = mean(mpc.bus(:,4));
+voltages.dist = [0.6, 2.3, 6.6, 13.8, 16.5];
+voltages.subtrans = [20, 27, 66, 86];
+voltages.trans = [115, 138, 230, 345];
+
+distBuses = getBusesAtLevels(mpcBase, voltages.dist);
+distMean = mean(mpc.bus(distBuses,4));
+
+subtransBuses = getBusesAtLevels(mpcBase, voltages.subtrans); 
+subtransMean = mean(mpc.bus(subtransBuses,4));
+
+transBuses = getBusesAtLevels(mpcBase, voltages.trans);
+transMean = mean(mpc.bus([transBuses],4));
+
+sysMu = zeros(length(mpc.bus(:,4)), 1);
+sysMu(distBuses) = distMean;
+sysMu(subtransBuses) = subtransMean;
+sysMu(transBuses) = transMean;
+
 N = 1000;
 means = zeros(numBuses, numGen);
 stds = zeros(numBuses, numGen);
@@ -38,7 +56,7 @@ for i = 1:300
         mpc = pfBase;
 
         % Set the new load value
-        curLoad = baseLoad + sysMu * x;
+        curLoad = baseLoad + sysMu * x * 0.5; 
         mpc.bus(i, 4) = curLoad;
 
         % Run the power flow
