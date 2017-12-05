@@ -16,7 +16,7 @@ sysMu = mean(mpc.bus(:,4));
 numBuses = length(mpc.bus(:,1));
 numGen = length(mpc.gen(:,1));
 
-maxLevel = 3;
+maxLevel = 4;
 dimension = 1;
 
 numPoints = sparse_grid_herm_size(dimension, maxLevel);
