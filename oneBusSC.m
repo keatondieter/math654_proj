@@ -23,7 +23,7 @@ subtransBuses = getBusesAtLevels(mpcBase, voltages.subtrans);
 subtransMean = mean(mpc.bus(subtransBuses,4));
 
 transBuses = getBusesAtLevels(mpcBase, voltages.trans);
-transMean = mean(mpc.bus(transBuses,4));
+transMean = mean(mpc.bus([transBuses],4));
 
 sysMu = zeros(length(mpc.bus(:,4)), 1);
 sysMu(distBuses) = distMean;
@@ -33,7 +33,7 @@ sysMu(transBuses) = transMean;
 numBuses = length(mpc.bus(:,1));
 numGen = length(mpc.gen(:,1));
 
-maxLevel = 4;
+maxLevel = 1;
 dimension = 1;
 
 numPoints = sparse_grid_herm_size(dimension, maxLevel);
@@ -52,7 +52,7 @@ for i = 1:300'
     for j = 1:numPoints
         mpc = pfBase;
 
-        curLoad = baseLoad + sysMu(i) * nodes(j);
+        curLoad = baseLoad + sysMu(i) * nodes(j) * 0.5;
         mpc.bus(i, 4) = curLoad;
     
         try
@@ -62,14 +62,25 @@ for i = 1:300'
             disp('reset to base')
             mpc = mpcBase;
             mpc.bus(i, 4) = curLoad;
+            loadVal(j) = curLoad;
+            colSuccess(j) = 0;
+            
             try
                 pfRes = runpf(mpc, mpopt);
             catch
+                colSuccess(j) = 0;
                 disp(i)
                 disp(curLoad)
                 disp('Tried them all')
             end
         end
+        colSuccess(j) = pfRes.success;
+        if colSuccess(j) == 0
+            disp(curLoad)
+        end
+        genResCol = genResCol + pfRes.gen(:,3) * weights(j);
+        genRes2 = genRes2 + pfRes.gen(:,3).^2 * weights(j);
+        
         loadVal(j) = curLoad;
         colSuccess(j) = pfRes.success;
         genResCol = genResCol + pfRes.gen(:,3) * weights(j);
