@@ -56,7 +56,7 @@ for i = 1:300
         mpc = pfBase;
 
         % Set the new load value
-        curLoad = baseLoad + sysMu * x * 0.5; 
+        curLoad = baseLoad + sysMu(i) * x * 0.5; 
         mpc.bus(i, 4) = curLoad;
 
         % Run the power flow
@@ -64,11 +64,12 @@ for i = 1:300
             pfRes = runpf(mpc, mpopt);
             loadVal(j) = curLoad;
             pfSuccess(j) = pfRes.success;
-            genRes(:,j) = pfRes.gen(:,4);
+            genRes(:,j) = pfRes.gen(:,3);
         catch
+            disp('Err')
             loadVal(j) = curLoad;
             pfSuccess(j) = 0;
-            genRes(:,j) = pfBase.gen(:,4);
+            genRes(:,j) = pfBase.gen(:,3);
         end
         
     end
